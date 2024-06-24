@@ -36,7 +36,6 @@
  */
 
 #include "as2_platform_mavlink/mavlink_platform.hpp"
-#include <mavros_msgs/msg/detail/attitude_target__struct.hpp>
 
 void notImplemented()
 {
@@ -257,11 +256,13 @@ bool MavlinkPlatform::ownSendCommand()
 }
 void MavlinkPlatform::ownKillSwitch()
 {
-  notImplemented();
-  // RCLCPP_ERROR(this->get_logger(), "KILL SWITCH TRIGGERED");
-  // px4_msgs::msg::ManualControlSwitches kill_switch_msg;
-  // kill_switch_msg.kill_switch = true;
-  // px4_manual_control_switches_pub_->publish(kill_switch_msg);
+  RCLCPP_ERROR(this->get_logger(), "KILL SWITCH TRIGGERED");
+  // MAV_CMD_COMPONENT_ARM_DISARM
+  auto out = mavlink_callVehicleCommand(400, 0.0, 21196.0);
+  if (!out) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to kill the vehicle");
+    return;
+  }
 }
 
 void MavlinkPlatform::ownStopPlatform() {RCLCPP_WARN(this->get_logger(), "NOT IMPLEMENTED");}

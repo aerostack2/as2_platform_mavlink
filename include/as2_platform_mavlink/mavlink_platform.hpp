@@ -61,6 +61,7 @@
 #include <mavros_msgs/msg/state.hpp>
 #include <mavros_msgs/msg/thrust.hpp>
 #include <mavros_msgs/srv/command_bool.hpp>
+#include <mavros_msgs/srv/command_long.hpp>
 #include <mavros_msgs/srv/set_mode.hpp>
 #include <mavros_msgs/msg/attitude_target.hpp>
 
@@ -131,6 +132,8 @@ private:
   // mavlink clients
   as2::SynchronousServiceClient<mavros_msgs::srv::CommandBool>::SharedPtr mavlink_arm_client_;
   as2::SynchronousServiceClient<mavros_msgs::srv::SetMode>::SharedPtr mavlink_set_mode_client_;
+  as2::SynchronousServiceClient<mavros_msgs::srv::CommandLong>::SharedPtr
+    mavlink_command_long_client_;
 
 
   // mavlink publishers
@@ -148,7 +151,22 @@ private:
   void mavlink_publishRatesSetpoint(double droll, double dpitch, double dyaw, double thrust);
   void mavlink_publishTwistSetpoint(const geometry_msgs::msg::TwistStamped & msg);
   void mavlink_publishPoseSetpoint(const geometry_msgs::msg::PoseStamped & msg);
-  // void mavlink_publishVehicleCommand(uint16_t command, float param1 = 0.0, float param2 = 0.0);
+  bool mavlink_callVehicleCommand(uint16_t command, float param1 = 0.0, float param2 = 0.0)
+  {
+    auto request = std::make_shared<mavros_msgs::srv::CommandLong::Request>();
+    auto response = std::make_shared<mavros_msgs::srv::CommandLong::Response>();
+    request->command = command;
+    request->broadcast = false;
+    request->confirmation = 0;
+    request->param1 = param1;
+    request->param2 = param2;
+    auto out = mavlink_command_long_client_->sendRequest(request, response);
+    if (!out || !response->success) {
+      RCLCPP_ERROR(this->get_logger(), "Error calling vehicle command");
+      return false;
+    }
+    return true;
+  }
   // void mavlink_publishVisualOdometry();
 
 private:
@@ -166,14 +184,6 @@ private:
   bool external_odom_ = true;
   std::string base_link_frame_id_;
   std::string odom_frame_id_;
-
-private:
-  // mavlink Callbacks
-  // void mavlink_imuCallback(const px4_msgs::msg::SensorCombined::SharedPtr msg);
-  // void mavlink_odometryCallback(const px4_msgs::msg::VehicleOdometry::SharedPtr msg);
-  // void mavlink_VehicleControlModeCallback(const px4_msgs::msg::VehicleControlMode::SharedPtr msg);
-  // void mavlink_BatteryCallback(const px4_msgs::msg::BatteryStatus::SharedPtr msg);
-  // void mavlink_GpsCallback(const px4_msgs::msg::SensorGps::SharedPtr msg);
 };
 
 }  // namespace as2_platform_mavlink
