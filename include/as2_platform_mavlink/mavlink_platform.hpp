@@ -44,6 +44,8 @@
 
 #include <cmath>
 #include <mavros_msgs/msg/detail/attitude_target__struct.hpp>
+#include <nav_msgs/msg/detail/odometry__struct.hpp>
+#include <rclcpp/subscription.hpp>
 #include <string>
 #include <memory>
 
@@ -113,6 +115,8 @@ private:
   // mavlink_ subscribers
 
   rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr mavlink_state_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr mavlink_odom_sub_;
+
   void mavlinkStateCb(const mavros_msgs::msg::State::SharedPtr msg)
   {
     this->platform_info_msg_.set__connected(msg->connected);

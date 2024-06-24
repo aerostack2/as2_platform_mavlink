@@ -76,7 +76,6 @@ def get_node(context, *args, **kwargs) -> list:
                         pluginlists_yaml, config_yaml],
             remappings=[('imu/data', f'/{namespace}/sensor_measurements/imu'),
                         ('gps/fix', f'/{namespace}/sensor_measurements/gps_raw'),
-                        ('odometry/in', f'/{namespace}/sensor_measurements/odometry'),
                         ],
         )]
 

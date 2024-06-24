@@ -77,6 +77,15 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
     "mavros/state", rclcpp::SensorDataQoS(),
     std::bind(&MavlinkPlatform::mavlinkStateCb, this, std::placeholders::_1));
 
+  mavlink_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+    "mavros/local_position/odom", rclcpp::SensorDataQoS(),
+
+    [&](const nav_msgs::msg::Odometry::SharedPtr msg) {
+      msg->child_frame_id = base_link_frame_id_;
+      msg->header.frame_id = odom_frame_id_;
+      this->odometry_raw_estimation_ptr_->updateData(*msg);
+    });
+
   // declare mavlink services
 
   mavlink_arm_client_ =
@@ -85,6 +94,7 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
   mavlink_set_mode_client_ =
     std::make_shared<as2::SynchronousServiceClient<mavros_msgs::srv::SetMode>>(
     "mavros/set_mode", this);
+
 
   // // px4_timesync_sub_ = this->create_subscription<px4_msgs::msg::TimesyncStatus>(
   // //     "/fmu/out/timesync_status", rclcpp::SensorDataQoS(),
