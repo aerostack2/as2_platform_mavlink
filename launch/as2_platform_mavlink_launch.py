@@ -54,7 +54,7 @@ def generate_launch_description():
     ])
 
     mavros_launch_file = PathJoinSubstitution([
-        FindPackageShare('mavros'), 'launch', 'px4.launch'])
+        FindPackageShare('as2_platform_mavlink'), 'launch', 'mavros_launch.py'])
 
     return LaunchDescription([
         DeclareLaunchArgument('namespace',
@@ -83,10 +83,11 @@ def generate_launch_description():
                 LaunchConfiguration('platform_config_file')
             ]
         ),
-        IncludeLaunchDescription(AnyLaunchDescriptionSource([mavros_launch_file]),
-                                 launch_arguments={
-                                     'namespace': 'drone0/mavros',
-                                     'fcu_url': LaunchConfiguration('fcu_url'),
-                                     }.items())
-
+        IncludeLaunchDescription(
+            AnyLaunchDescriptionSource(mavros_launch_file),
+            launch_arguments={
+                'fcu_url': LaunchConfiguration('fcu_url'),
+                'namespace': LaunchConfiguration('namespace')
+            }.items()
+        )
     ])
