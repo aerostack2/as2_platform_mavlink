@@ -79,7 +79,6 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
 
   mavlink_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
     "mavros/local_position/odom", rclcpp::SensorDataQoS(),
-
     [&](const nav_msgs::msg::Odometry::SharedPtr msg) {
       msg->child_frame_id = base_link_frame_id_;
       msg->header.frame_id = odom_frame_id_;

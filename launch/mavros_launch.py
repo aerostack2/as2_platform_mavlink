@@ -75,7 +75,9 @@ def get_node(context, *args, **kwargs) -> list:
                          'respawn_mavros': LaunchConfiguration('respawn_mavros')},
                         pluginlists_yaml, config_yaml],
             remappings=[('imu/data', f'/{namespace}/sensor_measurements/imu'),
-                        ('gps/fix', f'/{namespace}/sensor_measurements/gps_raw'),
+                        ('global_position/global', f'/{namespace}/sensor_measurements/gps'),
+                        ('battery', f'/{namespace}/sensor_measurements/battery'),
+
                         ],
         )]
 
