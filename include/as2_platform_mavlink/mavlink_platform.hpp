@@ -43,6 +43,7 @@
 #include <Eigen/Dense>
 
 #include <cmath>
+#include <mavros_msgs/msg/detail/attitude_target__struct.hpp>
 #include <string>
 #include <memory>
 
@@ -56,11 +57,16 @@
 
 #include <mavros_msgs/msg/command_code.hpp>
 #include <mavros_msgs/msg/state.hpp>
+#include <mavros_msgs/msg/thrust.hpp>
+#include <mavros_msgs/srv/command_bool.hpp>
+#include <mavros_msgs/srv/set_mode.hpp>
+#include <mavros_msgs/msg/attitude_target.hpp>
 
 
 #include "as2_core/aerial_platform.hpp"
 #include "as2_core/sensor.hpp"
 #include "as2_core/utils/tf_utils.hpp"
+#include "as2_core/synchronous_service_client.hpp"
 
 namespace as2_platform_mavlink
 {
@@ -105,32 +111,41 @@ private:
   void externalOdomCb(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
 
   // mavlink_ subscribers
-  // rclcpp::Subscription<px4_msgs::msg::SensorCombined>::SharedPtr px4_imu_sub_;
-  // rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr px4_odometry_sub_;
-  // rclcpp::Subscription<px4_msgs::msg::VehicleControlMode>::SharedPtr px4_vehicle_control_mode_sub_;
-  // rclcpp::Subscription<px4_msgs::msg::TimesyncStatus>::SharedPtr px4_timesync_sub_;
-  // rclcpp::Subscription<px4_msgs::msg::BatteryStatus>::SharedPtr px4_battery_sub_;
-  // rclcpp::Subscription<px4_msgs::msg::SensorGps>::SharedPtr px4_gps_sub_;
 
-  // mavlink_ publishers
-  // rclcpp::Publisher<px4_msgs::msg::ManualControlSwitches>::SharedPtr
-  //   px4_manual_control_switches_pub_;
-  // rclcpp::Publisher<px4_msgs::msg::OffboardControlMode>::SharedPtr px4_offboard_control_mode_pub_;
-  // rclcpp::Publisher<px4_msgs::msg::TrajectorySetpoint>::SharedPtr px4_trajectory_setpoint_pub_;
-  // rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr px4_vehicle_command_pub_;
-  // rclcpp::Publisher<px4_msgs::msg::VehicleAttitudeSetpoint>::SharedPtr
-  //   px4_vehicle_attitude_setpoint_pub_;
-  // rclcpp::Publisher<px4_msgs::msg::VehicleRatesSetpoint>::SharedPtr px4_vehicle_rates_setpoint_pub_;
+  rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr mavlink_state_sub_;
+  void mavlinkStateCb(const mavros_msgs::msg::State::SharedPtr msg)
+  {
+    this->platform_info_msg_.set__connected(msg->connected);
+    this->platform_info_msg_.set__armed(msg->armed);
+    if (msg->mode == "OFFBOARD") {
+      this->platform_info_msg_.set__offboard(true);
+    } else {
+      this->platform_info_msg_.set__offboard(false);
+    }
+  }
+
+  // mavlink clients
+  as2::SynchronousServiceClient<mavros_msgs::srv::CommandBool>::SharedPtr mavlink_arm_client_;
+  as2::SynchronousServiceClient<mavros_msgs::srv::SetMode>::SharedPtr mavlink_set_mode_client_;
+
+
+  // mavlink publishers
+
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr mavlink_pose_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr mavlink_twist_setpoint_pub_;
+  rclcpp::Publisher<mavros_msgs::msg::AttitudeTarget>::SharedPtr mavlink_acro_setpoint_pub_;
+
 
   // mavlink_ Functions
-  void mavlink_arm();
-  void mavlink_disarm();
-  void mavlink_publishOffboardControlMode();
-  void mavlink_publishTrajectorySetpoint();
-  void mavlink_publishAttitudeSetpoint();
-  void mavlink_publishRatesSetpoint();
-  void mavlink_publishVehicleCommand(uint16_t command, float param1 = 0.0, float param2 = 0.0);
-  void mavlink_publishVisualOdometry();
+  bool mavlink_callOffboardControlMode();
+
+  // void mavlink_publishTrajectorySetpoint();
+  void mavlink_publishAttitudeSetpoint(const geometry_msgs::msg::Quaternion & q, double thrust);
+  void mavlink_publishRatesSetpoint(double droll, double dpitch, double dyaw, double thrust);
+  void mavlink_publishTwistSetpoint(const geometry_msgs::msg::TwistStamped & msg);
+  void mavlink_publishPoseSetpoint(const geometry_msgs::msg::PoseStamped & msg);
+  // void mavlink_publishVehicleCommand(uint16_t command, float param1 = 0.0, float param2 = 0.0);
+  // void mavlink_publishVisualOdometry();
 
 private:
   bool manual_from_operator_ = false;
@@ -139,11 +154,7 @@ private:
 
   std::atomic<uint64_t> timestamp_;
 
-  // px4_msgs::msg::OffboardControlMode px4_offboard_control_mode_;
-  // px4_msgs::msg::TrajectorySetpoint px4_trajectory_setpoint_;
-  // px4_msgs::msg::VehicleAttitudeSetpoint px4_attitude_setpoint_;
-  // px4_msgs::msg::VehicleRatesSetpoint px4_rates_setpoint_;
-  // px4_msgs::msg::VehicleOdometry px4_visual_odometry_msg_;
+  geometry_msgs::msg::PoseStamped mavlink_pose_msg_;
 
   float max_thrust_;
   float min_thrust_;
@@ -152,13 +163,8 @@ private:
   std::string base_link_frame_id_;
   std::string odom_frame_id_;
 
-  Eigen::Quaterniond q_ned_to_enu_;
-  Eigen::Quaterniond q_enu_to_ned_;
-  Eigen::Quaterniond q_aircraft_to_baselink_;
-  Eigen::Quaterniond q_baselink_to_aircraft_;
-
 private:
-  // mavlink_ Callbacks
+  // mavlink Callbacks
   // void mavlink_imuCallback(const px4_msgs::msg::SensorCombined::SharedPtr msg);
   // void mavlink_odometryCallback(const px4_msgs::msg::VehicleOdometry::SharedPtr msg);
   // void mavlink_VehicleControlModeCallback(const px4_msgs::msg::VehicleControlMode::SharedPtr msg);

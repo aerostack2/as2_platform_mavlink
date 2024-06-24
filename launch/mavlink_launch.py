@@ -34,8 +34,9 @@ __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.launch_description_sources import AnyLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -52,10 +53,12 @@ def generate_launch_description():
         'config', 'platform_config_file.yaml'
     ])
 
+    mavros_launch_file = PathJoinSubstitution([
+        FindPackageShare('mavros'), 'launch', 'px4.launch'])
+
     return LaunchDescription([
         DeclareLaunchArgument('namespace',
-                              default_value=EnvironmentVariable(
-                                  'AEROSTACK2_SIMULATION_DRONE_ID'),
+                              default_value='drone0',
                               description='Drone namespace'),
         DeclareLaunchArgument('control_modes_file',
                               default_value=control_modes,
@@ -63,7 +66,9 @@ def generate_launch_description():
         DeclareLaunchArgument('platform_config_file',
                               default_value=platform_config_file,
                               description='Platform configuration file'),
-
+        DeclareLaunchArgument('fcu_url',
+                              default_value='udp://:14540@127.0.0.1:14557',
+                              description='Mavlink connection URL'),
         Node(
             package='as2_platform_mavlink',
             executable='as2_platform_mavlink_node',
@@ -77,5 +82,11 @@ def generate_launch_description():
                 },
                 LaunchConfiguration('platform_config_file')
             ]
-        )
+        ),
+        IncludeLaunchDescription(AnyLaunchDescriptionSource([mavros_launch_file]),
+                                 launch_arguments={
+                                     'namespace': 'drone0/mavros',
+                                     'fcu_url': LaunchConfiguration('fcu_url'),
+                                     }.items())
+
     ])

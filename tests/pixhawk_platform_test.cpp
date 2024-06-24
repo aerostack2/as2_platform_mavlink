@@ -110,7 +110,7 @@ void spinForTime(
 
 int platform_test()
 {
-  std::string ros_namespace = "test_mavlink_platform";
+  std::string ros_namespace = "drone0";
   auto test_node = std::make_shared<as2::mock::PlatformMockNode>(ros_namespace);
   auto tello_node = get_node(ros_namespace);
 
