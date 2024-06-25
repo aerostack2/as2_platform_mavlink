@@ -142,6 +142,8 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr mavlink_twist_setpoint_pub_;
   rclcpp::Publisher<mavros_msgs::msg::AttitudeTarget>::SharedPtr mavlink_acro_setpoint_pub_;
 
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr mavlink_vision_pose_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr mavlink_vision_speed_pub_;
 
   // mavlink_ Functions
   bool mavlink_callOffboardControlMode();
@@ -167,16 +169,21 @@ private:
     }
     return true;
   }
-  // void mavlink_publishVisualOdometry();
+  void mavlink_publishVisualOdometry()
+  {
+    mavlink_vision_pose_pub_->publish(mavlink_vision_pose_msg_);
+    mavlink_vision_speed_pub_->publish(mavlink_vision_speed_msg_);
+  }
 
 private:
   bool manual_from_operator_ = false;
   bool set_disarm_ = false;
-  nav_msgs::msg::Odometry odometry_msg_;
+  geometry_msgs::msg::PoseStamped mavlink_vision_pose_msg_;
+  geometry_msgs::msg::TwistStamped mavlink_vision_speed_msg_;
+
 
   std::atomic<uint64_t> timestamp_;
 
-  geometry_msgs::msg::PoseStamped mavlink_pose_msg_;
 
   float max_thrust_;
   float min_thrust_;

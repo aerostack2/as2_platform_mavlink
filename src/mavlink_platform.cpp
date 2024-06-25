@@ -111,18 +111,23 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
   // px4_odometry_sub_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(
   //   "/fmu/out/vehicle_odometry", rclcpp::SensorDataQoS(),
   //   std::bind(&MavlinkPlatform::px4odometryCallback, this, std::placeholders::_1));
-  // tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
+  tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
-  // if (external_odom_) {
-  //   // In real flights, the odometry is published by the onboard computer.
-  //   external_odometry_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
-  //     this->generate_global_name(as2_names::topics::self_localization::twist),
-  //     as2_names::topics::self_localization::qos,
-  //     std::bind(&MavlinkPlatform::externalOdomCb, this, std::placeholders::_1));
+  if (external_odom_) {
+    mavlink_vision_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+      "mavros/vision_pose/pose", 10);
+    mavlink_vision_speed_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
+      "mavros/vision_speed/speed_twist", 10);
 
-  //   static auto px4_publish_vo_timer = this->create_wall_timer(
-  //     std::chrono::milliseconds(10), [this]() {this->mavlink_publishVisualOdometry();});
-  // }
+    // In real flights, the odometry is published by the onboard computer.
+    external_odometry_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
+      this->generate_global_name(as2_names::topics::self_localization::twist),
+      as2_names::topics::self_localization::qos,
+      std::bind(&MavlinkPlatform::externalOdomCb, this, std::placeholders::_1));
+
+    static auto px4_publish_vo_timer = this->create_wall_timer(
+      std::chrono::milliseconds(10), [this]() {this->mavlink_publishVisualOdometry();});
+  }
 
   // declare mavlink_ publishers
 
@@ -267,28 +272,30 @@ void MavlinkPlatform::ownKillSwitch()
 
 void MavlinkPlatform::ownStopPlatform() {RCLCPP_WARN(this->get_logger(), "NOT IMPLEMENTED");}
 
-// void MavlinkPlatform::externalOdomCb(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg)
-// {
-//   try {
-//     auto [pose_msg, twist_msg] = tf_handler_->getState(
-//       *_twist_msg, base_link_frame_id_,
-//       odom_frame_id_, base_link_frame_id_);
+void MavlinkPlatform::externalOdomCb(const geometry_msgs::msg::TwistStamped::SharedPtr _twist_msg)
+{
+  RCLCPP_DEBUG(this->get_logger(), "External odometry received");
+  try {
+    auto [pose_msg, twist_msg] = tf_handler_->getState(
+      *_twist_msg, base_link_frame_id_,
+      odom_frame_id_, base_link_frame_id_);
 
-//     odometry_msg_.header.stamp = twist_msg.header.stamp;
-//     odometry_msg_.header.frame_id = pose_msg.header.frame_id;   // LOCAL_FRAME_FLU
-//     odometry_msg_.child_frame_id = twist_msg.header.frame_id;   // BODY_FRAME_FLU
-//     odometry_msg_.pose.pose = pose_msg.pose;
-//     odometry_msg_.twist.twist = twist_msg.twist;
-//   } catch (tf2::TransformException & ex) {
-//     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
-//   }
-//   return;
-// }
+    mavlink_vision_speed_msg_.header.stamp = twist_msg.header.stamp;
+    mavlink_vision_speed_msg_.header.frame_id = twist_msg.header.frame_id;   // BODY_FRAME_FLU
+    mavlink_vision_speed_msg_.twist = twist_msg.twist;
+
+    mavlink_vision_pose_msg_.header.stamp = pose_msg.header.stamp;
+    mavlink_vision_pose_msg_.header.frame_id = pose_msg.header.frame_id;   // LOCAL_FRAME_FLU
+    mavlink_vision_pose_msg_.pose = pose_msg.pose;
+  } catch (tf2::TransformException & ex) {
+    RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
+  }
+  return;
+}
 
 /** -----------------------------------------------------------------*/
 /** ------------------------- mavlink_ FUNCTIONS -------------------------*/
 /** -----------------------------------------------------------------*/
-
 
 // /**
 //  * @brief Publish the offboard control mode.
