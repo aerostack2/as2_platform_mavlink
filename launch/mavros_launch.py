@@ -33,11 +33,23 @@ __authors__ = 'Miguel Fernández Cortizas, Rafael Pérez Seguí'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+
+
+def get_mavros_config_file():
+    """Return the mavros config file."""
+    package_folder = get_package_share_directory('as2_platform_mavlink')
+    return os.path.join(package_folder,
+                        'config/mavros_config.yaml')
 
 
 def get_node(context, *args, **kwargs) -> list:
@@ -67,17 +79,15 @@ def get_node(context, *args, **kwargs) -> list:
             executable='mavros_node',
             namespace=ns,
             output=LaunchConfiguration('log_output'),
-            parameters=[{'fcu_url': LaunchConfiguration('fcu_url'),
-                         'gcs_url': LaunchConfiguration('gcs_url'),
-                         'tgt_system': LaunchConfiguration('tgt_system'),
-                         'tgt_component': LaunchConfiguration('tgt_component'),
-                         'fcu_protocol': LaunchConfiguration('fcu_protocol'),
-                         'respawn_mavros': LaunchConfiguration('respawn_mavros')},
-                        pluginlists_yaml, config_yaml],
+            parameters=[config_yaml,
+                        pluginlists_yaml,
+                        LaunchConfigurationFromConfigFile(
+                            'mavros_config_file',
+                            default_file=get_mavros_config_file())
+                        ],
             remappings=[('imu/data', f'/{namespace}/sensor_measurements/imu'),
                         ('global_position/global', f'/{namespace}/sensor_measurements/gps'),
                         ('battery', f'/{namespace}/sensor_measurements/battery'),
-
                         ],
         )]
 
@@ -87,45 +97,13 @@ def generate_launch_description():
     # Declare the launch arguments
     return LaunchDescription([
         DeclareLaunchArgument(
-            'fcu_url',
-            default_value='/dev/ttyACM0:57600',
-            description='URL for the FCU'
-        ),
-        DeclareLaunchArgument(
-            'gcs_url',
-            default_value='',
-            description='URL for the GCS'
-        ),
-        DeclareLaunchArgument(
-            'tgt_system',
-            default_value='1',
-            description='Target system ID'
-        ),
-        DeclareLaunchArgument(
-            'tgt_component',
-            default_value='1',
-            description='Target component ID'
-        ),
-        DeclareLaunchArgument(
-            'log_output',
-            default_value='screen',
-            description='Logging output type'
-        ),
-        DeclareLaunchArgument(
-            'fcu_protocol',
-            default_value='v2.0',
-            description='Protocol version for the FCU'
-        ),
-        DeclareLaunchArgument(
-            'respawn_mavros',
-            default_value='false',
-            description='Respawn mavros node if it dies'
-        ),
-        DeclareLaunchArgument(
             'namespace',
             default_value='mavros',
             description='Namespace for the mavros node'
         ),
+        DeclareLaunchArgumentsFromConfigFile(name='mavros_config_file',
+                                             source_file=get_mavros_config_file(),
+                                             description='Mavros configuration file'),
 
         OpaqueFunction(function=get_node),
 

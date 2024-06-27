@@ -33,42 +33,43 @@ __authors__ = 'Miguel Fernández Cortizas, Rafael Pérez Seguí'
 __copyright__ = 'Copyright (c) 2022 Universidad Politécnica de Madrid'
 __license__ = 'BSD-3-Clause'
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from as2_core.declare_launch_arguments_from_config_file import DeclareLaunchArgumentsFromConfigFile
+from as2_core.launch_configuration_from_config_file import LaunchConfigurationFromConfigFile
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.launch_description_sources import AnyLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
+
+
+def get_platform_config_file():
+    """Return the platform config file."""
+    package_folder = get_package_share_directory('as2_platform_mavlink')
+    return os.path.join(package_folder,
+                        'config/platform_config_file.yaml')
+
+
+def get_control_modes_file():
+    """Return the control modes file."""
+    package_folder = get_package_share_directory('as2_platform_mavlink')
+    return os.path.join(package_folder,
+                        'config/control_modes.yaml')
 
 
 def generate_launch_description():
     """Entrypoint."""
-    control_modes = PathJoinSubstitution([
-        FindPackageShare('as2_platform_mavlink'),
-        'config', 'control_modes.yaml'
-    ])
-
-    platform_config_file = PathJoinSubstitution([
-        FindPackageShare('as2_platform_mavlink'),
-        'config', 'platform_config_file.yaml'
-    ])
-
-    mavros_launch_file = PathJoinSubstitution([
-        FindPackageShare('as2_platform_mavlink'), 'launch', 'mavros_launch.py'])
-
     return LaunchDescription([
         DeclareLaunchArgument('namespace',
                               default_value='drone0',
                               description='Drone namespace'),
         DeclareLaunchArgument('control_modes_file',
-                              default_value=control_modes,
+                              default_value=get_control_modes_file(),
                               description='Platform control modes file'),
-        DeclareLaunchArgument('platform_config_file',
-                              default_value=platform_config_file,
-                              description='Platform configuration file'),
-        DeclareLaunchArgument('fcu_url',
-                              default_value='udp://:14540@127.0.0.1:14557',
-                              description='Mavlink connection URL'),
+        DeclareLaunchArgumentsFromConfigFile(name='platform_config_file',
+                                             source_file=get_platform_config_file(),
+                                             description='Platform configuration file'),
         Node(
             package='as2_platform_mavlink',
             executable='as2_platform_mavlink_node',
@@ -80,14 +81,8 @@ def generate_launch_description():
                 {
                     'control_modes_file': LaunchConfiguration('control_modes_file'),
                 },
-                LaunchConfiguration('platform_config_file')
+                LaunchConfigurationFromConfigFile('platform_config_file',
+                                                  default_file=get_platform_config_file())
             ]
         ),
-        IncludeLaunchDescription(
-            AnyLaunchDescriptionSource(mavros_launch_file),
-            launch_arguments={
-                'fcu_url': LaunchConfiguration('fcu_url'),
-                'namespace': LaunchConfiguration('namespace')
-            }.items()
-        )
     ])

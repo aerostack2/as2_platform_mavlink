@@ -225,19 +225,27 @@ bool MavlinkPlatform::ownSendCommand()
 {
   as2_msgs::msg::ControlMode platform_control_mode = this->getControlMode();
 
+  auto thrust_normalized = this->command_thrust_msg_.thrust / max_thrust_;
+  thrust_normalized = std::clamp<float>(thrust_normalized, min_thrust_, 1.0);
+
   // Switch case to set setpoint
   switch (platform_control_mode.control_mode) {
     case as2_msgs::msg::ControlMode::POSITION: {
         if (platform_control_mode.yaw_mode == as2_msgs::msg::ControlMode::YAW_ANGLE) {
           mavlink_publishPoseSetpoint(this->command_pose_msg_);
         } else {
-          // ENU --> NED
-          notImplemented();
+          RCLCPP_WARN(
+            this->get_logger(),
+            "NOT IMPLEMENTED FOR POSITION WITH YAW_RATE SETPOINT, sending  yaw 0.0");
+          command_pose_msg_.pose.orientation = tf2::toMsg(tf2::Quaternion(0, 0, 0, 1));
+          mavlink_publishPoseSetpoint(this->command_pose_msg_);
         }
       } break;
     case as2_msgs::msg::ControlMode::SPEED: {
         if (platform_control_mode.yaw_mode == as2_msgs::msg::ControlMode::YAW_ANGLE) {
-          notImplemented();
+          RCLCPP_WARN(this->get_logger(), "NOT IMPLEMENTED FOR SPEED WITH YAW_ANGLE SETPOINT");
+          this->command_twist_msg_.twist.angular.z = 0.0;
+          mavlink_publishTwistSetpoint(this->command_twist_msg_);
         } else {
           mavlink_publishTwistSetpoint(this->command_twist_msg_);
         }
@@ -245,14 +253,14 @@ bool MavlinkPlatform::ownSendCommand()
     case as2_msgs::msg::ControlMode::ATTITUDE: {
         mavlink_publishAttitudeSetpoint(
           this->command_pose_msg_.pose.orientation,
-          this->command_thrust_msg_.thrust);
+          thrust_normalized);
       } break;
     case as2_msgs::msg::ControlMode::ACRO: {
         mavlink_publishRatesSetpoint(
           this->command_twist_msg_.twist.angular.x,
           this->command_twist_msg_.twist.angular.y,
           this->command_twist_msg_.twist.angular.z,
-          this->command_thrust_msg_.thrust);
+          thrust_normalized);
       } break;
     default:
       return false;
