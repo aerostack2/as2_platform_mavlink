@@ -21,6 +21,8 @@
   <depend>nav_msgs</depend>
   <depend>eigen</depend>
   <depend>mavros_msgs</depend>
+  <depend>mavros</depend>
+  <depend>mavros_extras</depend>
 
   <!-- linting test dependencies -->
   <test_depend>ament_lint_auto</test_depend>
