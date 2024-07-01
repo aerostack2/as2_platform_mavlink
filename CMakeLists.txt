@@ -46,7 +46,10 @@ set(SOURCE_CPP_FILES
 )
 
 # Create the node executable
-add_executable(${PROJECT_NAME}_node src/mavlink_platform_node.cpp ${SOURCE_CPP_FILES})
+add_executable(${PROJECT_NAME}_node
+  src/mavlink_platform_node.cpp
+  ${SOURCE_CPP_FILES})
+
 ament_target_dependencies(${PROJECT_NAME}_node ${PROJECT_DEPENDENCIES})
 
 # Create the library

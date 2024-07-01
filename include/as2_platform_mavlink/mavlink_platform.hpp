@@ -33,8 +33,6 @@
  *
  * @author Miguel Fernández Cortizas
  *         Rafael Pérez Seguí
- *         Pedro Arias Pérez
- *         Javier Melero Deza
  */
 
 #ifndef AS2_PLATFORM_MAVLINK__MAVLINK_PLATFORM_HPP_
@@ -42,12 +40,14 @@
 
 #include <Eigen/Dense>
 
+#include <string>
+#include <memory>
 #include <cmath>
+
+
 #include <mavros_msgs/msg/detail/attitude_target__struct.hpp>
 #include <nav_msgs/msg/detail/odometry__struct.hpp>
 #include <rclcpp/subscription.hpp>
-#include <string>
-#include <memory>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
@@ -56,14 +56,13 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/nav_sat_status.hpp>
-
+#include <mavros_msgs/msg/attitude_target.hpp>
 #include <mavros_msgs/msg/command_code.hpp>
 #include <mavros_msgs/msg/state.hpp>
 #include <mavros_msgs/msg/thrust.hpp>
 #include <mavros_msgs/srv/command_bool.hpp>
 #include <mavros_msgs/srv/command_long.hpp>
 #include <mavros_msgs/srv/set_mode.hpp>
-#include <mavros_msgs/msg/attitude_target.hpp>
 
 
 #include "as2_core/aerial_platform.hpp"

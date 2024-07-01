@@ -93,24 +93,6 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
     std::make_shared<as2::SynchronousServiceClient<mavros_msgs::srv::SetMode>>(
     "mavros/set_mode", this);
 
-
-  // // px4_timesync_sub_ = this->create_subscription<px4_msgs::msg::TimesyncStatus>(
-  // //     "/fmu/out/timesync_status", rclcpp::SensorDataQoS(),
-  // //     [this](const px4_msgs::msg::TimesyncStatus::UniquePtr msg) {
-  // //       timestamp_.store(msg->timestamp);
-  // //     });
-
-  // px4_gps_sub_ = this->create_subscription<px4_msgs::msg::SensorGps>(
-  //   "/fmu/out/vehicle_gps_position", rclcpp::SensorDataQoS(),
-  //   std::bind(&MavlinkPlatform::px4GpsCallback, this, std::placeholders::_1));
-
-  // px4_battery_sub_ = this->create_subscription<px4_msgs::msg::BatteryStatus>(
-  //   "/fmu/out/battery_status", rclcpp::SensorDataQoS(),
-  //   std::bind(&MavlinkPlatform::px4BatteryCallback, this, std::placeholders::_1));
-
-  // px4_odometry_sub_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(
-  //   "/fmu/out/vehicle_odometry", rclcpp::SensorDataQoS(),
-  //   std::bind(&MavlinkPlatform::px4odometryCallback, this, std::placeholders::_1));
   tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
   if (external_odom_) {
