@@ -47,7 +47,7 @@ namespace as2_platform_mavlink
 {
 
 MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
-: as2::AerialPlatform(options)
+: as2::AerialPlatform(options), thrust_map_(4)  // TODO(miferco97): hardcoded number of motors
 {
   configureSensors();
 
@@ -82,6 +82,12 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
       msg->child_frame_id = base_link_frame_id_;
       msg->header.frame_id = odom_frame_id_;
       this->odometry_raw_estimation_ptr_->updateData(*msg);
+    });
+
+  mavlink_battery_sub_ = this->create_subscription<sensor_msgs::msg::BatteryState>(
+    as2_names::topics::sensor_measurements::battery, rclcpp::SensorDataQoS(),
+    [&](const sensor_msgs::msg::BatteryState::SharedPtr msg) {
+      voltage_ = msg->voltage;
     });
 
   // declare mavlink services
@@ -119,14 +125,27 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
     "mavros/setpoint_raw/attitude", 10);
   mavlink_twist_setpoint_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
     "mavros/setpoint_velocity/cmd_vel", 10);
+
+
+  // Thrust map
+  this->declare_parameter<float>("thrust_map.a");
+  this->declare_parameter<float>("thrust_map.b");
+  this->declare_parameter<float>("thrust_map.c");
+  this->declare_parameter<float>("thrust_map.d");
+  this->declare_parameter<float>("thrust_map.e");
+  this->declare_parameter<float>("thrust_map.f");
+  thrust_map_.set_parameters(
+    this->get_parameter("thrust_map.a").as_double(),
+    this->get_parameter("thrust_map.b").as_double(),
+    this->get_parameter("thrust_map.c").as_double(),
+    this->get_parameter("thrust_map.d").as_double(),
+    this->get_parameter("thrust_map.e").as_double(),
+    this->get_parameter("thrust_map.f").as_double());
+  RCLCPP_INFO(this->get_logger(), "Thrust map: %s", thrust_map_.to_string().c_str());
 }
 
 void MavlinkPlatform::configureSensors()
 {
-  imu_sensor_ptr_ = std::make_unique<as2::sensors::Imu>("imu", this);
-  battery_sensor_ptr_ = std::make_unique<as2::sensors::Battery>("battery", this);
-  gps_sensor_ptr_ = std::make_unique<as2::sensors::GPS>("gps", this);
-
   odometry_raw_estimation_ptr_ =
     std::make_unique<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("odom", this);
 }
@@ -207,8 +226,11 @@ bool MavlinkPlatform::ownSendCommand()
 {
   as2_msgs::msg::ControlMode platform_control_mode = this->getControlMode();
 
-  auto thrust_normalized = this->command_thrust_msg_.thrust / max_thrust_;
-  thrust_normalized = std::clamp<float>(thrust_normalized, min_thrust_, 1.0);
+  // auto thrust_normalized = this->command_thrust_msg_.thrust / max_thrust_;
+  // thrust_normalized = std::clamp<float>(thrust_normalized, min_thrust_, 1.0);
+  auto thrust = std::clamp(this->command_thrust_msg_.thrust, min_thrust_, max_thrust_);
+  auto thrust_normalized = thrust_map_.getThrottle_normalized(
+    thrust, voltage_);
 
   // Switch case to set setpoint
   switch (platform_control_mode.control_mode) {

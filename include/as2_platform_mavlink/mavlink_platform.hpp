@@ -64,11 +64,13 @@
 #include <mavros_msgs/srv/command_long.hpp>
 #include <mavros_msgs/srv/set_mode.hpp>
 
-
+#include "as2_core/names/topics.hpp"
 #include "as2_core/aerial_platform.hpp"
 #include "as2_core/sensor.hpp"
 #include "as2_core/utils/tf_utils.hpp"
 #include "as2_core/synchronous_service_client.hpp"
+
+#include "as2_platform_mavlink/thrust_map.hpp"
 
 namespace as2_platform_mavlink
 {
@@ -103,10 +105,7 @@ public:
 private:
   bool has_mode_settled_ = false;
 
-  std::unique_ptr<as2::sensors::Imu> imu_sensor_ptr_;
-  std::unique_ptr<as2::sensors::Sensor<sensor_msgs::msg::BatteryState>> battery_sensor_ptr_;
   std::unique_ptr<as2::sensors::Sensor<nav_msgs::msg::Odometry>> odometry_raw_estimation_ptr_;
-  std::unique_ptr<as2::sensors::GPS> gps_sensor_ptr_;
 
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr external_odometry_sub_;
@@ -116,6 +115,7 @@ private:
 
   rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr mavlink_state_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr mavlink_odom_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::BatteryState>::SharedPtr mavlink_battery_sub_;
 
   void mavlinkStateCb(const mavros_msgs::msg::State::SharedPtr msg)
   {
@@ -183,7 +183,8 @@ private:
 
   std::atomic<uint64_t> timestamp_;
 
-
+  double voltage_ = 0.0;
+  ThrustMap thrust_map_;
   float max_thrust_;
   float min_thrust_;
   bool simulation_mode_ = false;

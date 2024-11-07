@@ -5,3 +5,10 @@
     max_thrust: 15.0  # Max thrust to send to platform (N)
     min_thrust: 0.15  # Min thrust to send to platform (N)
     external_odom: false  # Flag to use external odometry source
+    thrust_map: 
+      a: -18414.433600449644
+      b: 829.3300577713844
+      c: 2453.1637496766352
+      d: -19.827039781458588
+      e: -36.0309786395156
+      f: -77.3083750576221
