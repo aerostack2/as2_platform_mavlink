@@ -114,7 +114,7 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
       std::bind(&MavlinkPlatform::externalOdomCb, this, std::placeholders::_1));
 
     static auto px4_publish_vo_timer = this->create_wall_timer(
-      std::chrono::milliseconds(10), [this]() {this->mavlink_publishVisualOdometry();});
+      std::chrono::milliseconds(60), [this]() {this->mavlink_publishVisualOdometry();});
   }
 
   // declare mavlink_ publishers
