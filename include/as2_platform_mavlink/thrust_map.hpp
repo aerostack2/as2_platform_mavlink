@@ -85,7 +85,7 @@ public:
     double x = thrust;
     double y = voltage;
 
-    return a + b * x + c * y + d * x * x + e * y * y + f * x * y;
+    return a + b * x + c * y + d * x * x + e * x * y + f * y * y;
   }
 
   uint16_t getThrottle_useconds(double thrust, double voltage)
