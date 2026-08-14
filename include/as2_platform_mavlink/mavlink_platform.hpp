@@ -76,28 +76,94 @@ namespace as2_platform_mavlink
 class MavlinkPlatform : public as2::AerialPlatform
 {
 public:
+  /**
+   * @brief Construct the MAVLink platform, creating the MAVROS interfaces.
+   *
+   * @param options Node options.
+   */
   explicit MavlinkPlatform(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  /**
+   * @brief Destroy the Mavlink Platform object.
+   */
   ~MavlinkPlatform() {}
 
 public:
+  /**
+   * @brief Create the sensor interfaces the platform publishes.
+   */
   void configureSensors() override;
+  /**
+   * @brief Publish the sensor measurements read from the autopilot.
+   */
   void publishSensorData();
 
   // TODO(miferco97): set ATTITUDE as default mode with yaw_speed = 0  and Thrust = 0 N
+  /**
+   * @brief Set the control mode the platform falls back to. Not implemented.
+   */
   void setDefaultControlMode() {}
 
+  /**
+   * @brief Arm or disarm the vehicle.
+   *
+   * @param state True to arm, false to disarm.
+   * @return true if the vehicle accepted the request.
+   */
   bool ownSetArmingState(bool state) override;
+  /**
+   * @brief Enter or leave offboard control.
+   *
+   * @param offboard True to take control, false to release it.
+   * @return true if the vehicle accepted the request.
+   */
   bool ownSetOffboardControl(bool offboard) override;
+  /**
+   * @brief Accept a control mode requested through the platform interface.
+   *
+   * @param msg Requested control mode.
+   * @return true if the platform accepts the mode.
+   */
   bool ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg) override;
+  /**
+   * @brief Send the actuator commands, keeping the offboard heartbeat alive
+   * even while the platform is not sending references.
+   */
   void sendCommand() override;
+  /**
+   * @brief Send the current actuator commands to the vehicle.
+   *
+   * @return true if the command was sent.
+   */
   bool ownSendCommand() override;
+  /**
+   * @brief Stop the motors immediately, without landing.
+   */
   void ownKillSwitch() override;
+  /**
+   * @brief Hold the vehicle in place with a zero setpoint.
+   */
   void ownStopPlatform() override;
 
+  /**
+   * @brief Zero the trajectory setpoint sent to the autopilot.
+   */
   void resetTrajectorySetpoint();
+
+  /**
+   * @brief Zero the attitude setpoint sent to the autopilot.
+   */
   void resetAttitudeSetpoint();
+
+  /**
+   * @brief Zero the body rates setpoint sent to the autopilot.
+   */
   void resetRatesSetpoint();
 
+  /**
+   * @brief Get whether the platform is running against a simulated autopilot.
+   *
+   * @return true in simulation mode.
+   */
   bool getFlagSimulationMode();
 
 private:
@@ -110,6 +176,12 @@ private:
 
   std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr external_odometry_sub_;
+  /**
+   * @brief Forward an external velocity estimate to the autopilot, as visual
+   * odometry.
+   *
+   * @param msg Twist of the vehicle, from an external localization system.
+   */
   void externalOdomCb(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
 
   // mavlink_ subscribers
@@ -117,6 +189,11 @@ private:
   rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr mavlink_state_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr mavlink_odom_sub_;
 
+  /**
+   * @brief Store the connected, armed and offboard flags reported by MAVROS.
+   *
+   * @param msg Autopilot state.
+   */
   void mavlinkStateCb(const mavros_msgs::msg::State::SharedPtr msg)
   {
     this->platform_info_msg_.set__connected(msg->connected);
@@ -145,13 +222,50 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr mavlink_vision_speed_pub_;
 
   // mavlink_ Functions
+  /**
+   * @brief Ask MAVROS to switch the autopilot into offboard mode.
+   *
+   * @return true if the autopilot switched.
+   */
   bool mavlink_callOffboardControlMode();
 
   // void mavlink_publishTrajectorySetpoint();
+  /**
+   * @brief Publish an attitude setpoint to the autopilot.
+   *
+   * @param q Commanded orientation.
+   * @param thrust Normalized collective thrust, in [0, 1].
+   */
   void mavlink_publishAttitudeSetpoint(const geometry_msgs::msg::Quaternion & q, double thrust);
+  /**
+   * @brief Publish a body rates setpoint to the autopilot.
+   *
+   * @param droll Roll rate, in rad/s.
+   * @param dpitch Pitch rate, in rad/s.
+   * @param dyaw Yaw rate, in rad/s.
+   * @param thrust Normalized collective thrust, in [0, 1].
+   */
   void mavlink_publishRatesSetpoint(double droll, double dpitch, double dyaw, double thrust);
+  /**
+   * @brief Publish a velocity setpoint to the autopilot.
+   *
+   * @param msg Twist setpoint.
+   */
   void mavlink_publishTwistSetpoint(const geometry_msgs::msg::TwistStamped & msg);
+  /**
+   * @brief Publish a position setpoint to the autopilot.
+   *
+   * @param msg Pose setpoint.
+   */
   void mavlink_publishPoseSetpoint(const geometry_msgs::msg::PoseStamped & msg);
+  /**
+   * @brief Send a MAVLink COMMAND_LONG to the autopilot.
+   *
+   * @param command MAVLink command id.
+   * @param param1 First command parameter.
+   * @param param2 Second command parameter.
+   * @return true if the autopilot acknowledged the command.
+   */
   bool mavlink_callVehicleCommand(uint16_t command, float param1 = 0.0, float param2 = 0.0)
   {
     auto request = std::make_shared<mavros_msgs::srv::CommandLong::Request>();
@@ -168,6 +282,9 @@ private:
     }
     return true;
   }
+  /**
+   * @brief Publish the last visual pose and speed to the autopilot estimator.
+   */
   void mavlink_publishVisualOdometry()
   {
     mavlink_vision_pose_pub_->publish(mavlink_vision_pose_msg_);
