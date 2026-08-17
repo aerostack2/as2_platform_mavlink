@@ -87,7 +87,6 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
     std::make_shared<as2::SynchronousServiceClient<mavros_msgs::srv::SetMode>>(
     "mavros/set_mode", this);
 
-  tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
   if (external_odom_) {
     mavlink_vision_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
@@ -165,6 +164,10 @@ bool MavlinkPlatform::ownSetOffboardControl(bool offboard)
 
 bool MavlinkPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
+  // The MAVLink setpoints are built from the local reference frame of the vehicle
+  setCommandPoseFrameId(odom_frame_id_);
+  setCommandTwistFrameId(odom_frame_id_);
+
   switch (msg.control_mode) {
     case as2_msgs::msg::ControlMode::POSITION: {
         RCLCPP_INFO(this->get_logger(), "POSITION_MODE ENABLED");
@@ -265,11 +268,11 @@ void MavlinkPlatform::externalOdomCb(const geometry_msgs::msg::TwistStamped::Sha
       odom_frame_id_, base_link_frame_id_);
 
     mavlink_vision_speed_msg_.header.stamp = twist_msg.header.stamp;
-    mavlink_vision_speed_msg_.header.frame_id = twist_msg.header.frame_id;   // BODY_FRAME_FLU
+    mavlink_vision_speed_msg_.header.frame_id = twist_msg.header.frame_id;   // body frame
     mavlink_vision_speed_msg_.twist = twist_msg.twist;
 
     mavlink_vision_pose_msg_.header.stamp = pose_msg.header.stamp;
-    mavlink_vision_pose_msg_.header.frame_id = pose_msg.header.frame_id;   // LOCAL_FRAME_FLU
+    mavlink_vision_pose_msg_.header.frame_id = pose_msg.header.frame_id;   // local reference frame
     mavlink_vision_pose_msg_.pose = pose_msg.pose;
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
