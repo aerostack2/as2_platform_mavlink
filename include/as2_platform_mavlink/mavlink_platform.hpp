@@ -216,7 +216,7 @@ private:
 
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr mavlink_pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr mavlink_twist_setpoint_pub_;
-  rclcpp::Publisher<mavros_msgs::msg::AttitudeTarget>::SharedPtr mavlink_acro_setpoint_pub_;
+  rclcpp::Publisher<mavros_msgs::msg::AttitudeTarget>::SharedPtr mavlink_body_rates_setpoint_pub_;
 
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr mavlink_vision_pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr mavlink_vision_speed_pub_;

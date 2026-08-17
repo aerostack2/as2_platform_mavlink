@@ -109,7 +109,7 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
 
   mavlink_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
     "mavros/setpoint_position/local", 10);
-  mavlink_acro_setpoint_pub_ = this->create_publisher<mavros_msgs::msg::AttitudeTarget>(
+  mavlink_body_rates_setpoint_pub_ = this->create_publisher<mavros_msgs::msg::AttitudeTarget>(
     "mavros/setpoint_raw/attitude", 10);
   mavlink_twist_setpoint_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
     "mavros/setpoint_velocity/cmd_vel", 10);
@@ -175,8 +175,8 @@ bool MavlinkPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode
     case as2_msgs::msg::ControlMode::ATTITUDE: {
         RCLCPP_INFO(this->get_logger(), "ATTITUDE_MODE ENABLED");
       } break;
-    case as2_msgs::msg::ControlMode::ACRO: {
-        RCLCPP_INFO(this->get_logger(), "ACRO_MODE ENABLED");
+    case as2_msgs::msg::ControlMode::BODY_RATES: {
+        RCLCPP_INFO(this->get_logger(), "BODY_RATES_MODE ENABLED");
       } break;
     default: {
         RCLCPP_WARN(this->get_logger(), "CONTROL MODE %d NOT SUPPORTED", msg.control_mode);
@@ -231,7 +231,7 @@ bool MavlinkPlatform::ownSendCommand()
           this->command_pose_msg_.pose.orientation,
           thrust_normalized);
       } break;
-    case as2_msgs::msg::ControlMode::ACRO: {
+    case as2_msgs::msg::ControlMode::BODY_RATES: {
         mavlink_publishRatesSetpoint(
           this->command_twist_msg_.twist.angular.x,
           this->command_twist_msg_.twist.angular.y,
@@ -309,7 +309,7 @@ void MavlinkPlatform::mavlink_publishRatesSetpoint(
   msg.body_rate.y = dpitch;
   msg.body_rate.z = dyaw;
   msg.thrust = dthrust;
-  mavlink_acro_setpoint_pub_->publish(msg);
+  mavlink_body_rates_setpoint_pub_->publish(msg);
 }
 
 void MavlinkPlatform::mavlink_publishAttitudeSetpoint(
@@ -323,7 +323,7 @@ void MavlinkPlatform::mavlink_publishAttitudeSetpoint(
     mavros_msgs::msg::AttitudeTarget::IGNORE_YAW_RATE;
   msg.orientation = q;
   msg.thrust = thrust;
-  mavlink_acro_setpoint_pub_->publish(msg);
+  mavlink_body_rates_setpoint_pub_->publish(msg);
 }
 
 
