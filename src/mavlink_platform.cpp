@@ -53,21 +53,15 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
 
   base_link_frame_id_ = as2::tf::generateTfName(this, "base_link");
   odom_frame_id_ = as2::tf::generateTfName(this, "odom");
-
-  this->declare_parameter<float>("max_thrust");
-  max_thrust_ = this->get_parameter("max_thrust").as_double();
-
-  this->declare_parameter<float>("min_thrust");
-  min_thrust_ = this->get_parameter("min_thrust").as_double();
-
-  this->declare_parameter<bool>("external_odom");
-  external_odom_ = this->get_parameter("external_odom").as_bool();
+  max_thrust_ = this->getParameter<double>("max_thrust");
+  min_thrust_ = this->getParameter<double>("min_thrust");
+  external_odom_ = this->getParameter<bool>("external_odom");
 
   RCLCPP_INFO(this->get_logger(), "Max thrust: %f", max_thrust_);
   RCLCPP_INFO(this->get_logger(), "Min thrust: %f", min_thrust_);
   RCLCPP_INFO(
     this->get_logger(), "Simulation mode: %s",
-    this->get_parameter("use_sim_time").as_bool() ? "true" : "false");
+    this->getParameter<bool>("use_sim_time") ? "true" : "false");
   RCLCPP_INFO(this->get_logger(), "External odometry mode: %s", external_odom_ ? "true" : "false");
 
   // declare mavlink_ subscribers
