@@ -87,7 +87,6 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
     std::make_shared<as2::SynchronousServiceClient<mavros_msgs::srv::SetMode>>(
     "mavros/set_mode", this);
 
-  tf_handler_ = std::make_shared<as2::tf::TfHandler>(this);
 
   if (external_odom_) {
     mavlink_vision_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
@@ -109,7 +108,7 @@ MavlinkPlatform::MavlinkPlatform(const rclcpp::NodeOptions & options)
 
   mavlink_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
     "mavros/setpoint_position/local", 10);
-  mavlink_acro_setpoint_pub_ = this->create_publisher<mavros_msgs::msg::AttitudeTarget>(
+  mavlink_body_rates_setpoint_pub_ = this->create_publisher<mavros_msgs::msg::AttitudeTarget>(
     "mavros/setpoint_raw/attitude", 10);
   mavlink_twist_setpoint_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
     "mavros/setpoint_velocity/cmd_vel", 10);
@@ -165,6 +164,10 @@ bool MavlinkPlatform::ownSetOffboardControl(bool offboard)
 
 bool MavlinkPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode & msg)
 {
+  // The MAVLink setpoints are built from the local reference frame of the vehicle
+  setCommandPoseFrameId(odom_frame_id_);
+  setCommandTwistFrameId(odom_frame_id_);
+
   switch (msg.control_mode) {
     case as2_msgs::msg::ControlMode::POSITION: {
         RCLCPP_INFO(this->get_logger(), "POSITION_MODE ENABLED");
@@ -175,8 +178,8 @@ bool MavlinkPlatform::ownSetPlatformControlMode(const as2_msgs::msg::ControlMode
     case as2_msgs::msg::ControlMode::ATTITUDE: {
         RCLCPP_INFO(this->get_logger(), "ATTITUDE_MODE ENABLED");
       } break;
-    case as2_msgs::msg::ControlMode::ACRO: {
-        RCLCPP_INFO(this->get_logger(), "ACRO_MODE ENABLED");
+    case as2_msgs::msg::ControlMode::BODY_RATES: {
+        RCLCPP_INFO(this->get_logger(), "BODY_RATES_MODE ENABLED");
       } break;
     default: {
         RCLCPP_WARN(this->get_logger(), "CONTROL MODE %d NOT SUPPORTED", msg.control_mode);
@@ -231,7 +234,7 @@ bool MavlinkPlatform::ownSendCommand()
           this->command_pose_msg_.pose.orientation,
           thrust_normalized);
       } break;
-    case as2_msgs::msg::ControlMode::ACRO: {
+    case as2_msgs::msg::ControlMode::BODY_RATES: {
         mavlink_publishRatesSetpoint(
           this->command_twist_msg_.twist.angular.x,
           this->command_twist_msg_.twist.angular.y,
@@ -265,11 +268,11 @@ void MavlinkPlatform::externalOdomCb(const geometry_msgs::msg::TwistStamped::Sha
       odom_frame_id_, base_link_frame_id_);
 
     mavlink_vision_speed_msg_.header.stamp = twist_msg.header.stamp;
-    mavlink_vision_speed_msg_.header.frame_id = twist_msg.header.frame_id;   // BODY_FRAME_FLU
+    mavlink_vision_speed_msg_.header.frame_id = twist_msg.header.frame_id;   // body frame
     mavlink_vision_speed_msg_.twist = twist_msg.twist;
 
     mavlink_vision_pose_msg_.header.stamp = pose_msg.header.stamp;
-    mavlink_vision_pose_msg_.header.frame_id = pose_msg.header.frame_id;   // LOCAL_FRAME_FLU
+    mavlink_vision_pose_msg_.header.frame_id = pose_msg.header.frame_id;   // local reference frame
     mavlink_vision_pose_msg_.pose = pose_msg.pose;
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
@@ -309,7 +312,7 @@ void MavlinkPlatform::mavlink_publishRatesSetpoint(
   msg.body_rate.y = dpitch;
   msg.body_rate.z = dyaw;
   msg.thrust = dthrust;
-  mavlink_acro_setpoint_pub_->publish(msg);
+  mavlink_body_rates_setpoint_pub_->publish(msg);
 }
 
 void MavlinkPlatform::mavlink_publishAttitudeSetpoint(
@@ -323,7 +326,7 @@ void MavlinkPlatform::mavlink_publishAttitudeSetpoint(
     mavros_msgs::msg::AttitudeTarget::IGNORE_YAW_RATE;
   msg.orientation = q;
   msg.thrust = thrust;
-  mavlink_acro_setpoint_pub_->publish(msg);
+  mavlink_body_rates_setpoint_pub_->publish(msg);
 }
 
 

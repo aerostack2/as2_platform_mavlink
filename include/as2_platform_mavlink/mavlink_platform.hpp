@@ -174,7 +174,6 @@ private:
   std::unique_ptr<as2::sensors::Sensor<nav_msgs::msg::Odometry>> odometry_raw_estimation_ptr_;
   std::unique_ptr<as2::sensors::GPS> gps_sensor_ptr_;
 
-  std::shared_ptr<as2::tf::TfHandler> tf_handler_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr external_odometry_sub_;
   /**
    * @brief Forward an external velocity estimate to the autopilot, as visual
@@ -216,7 +215,7 @@ private:
 
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr mavlink_pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr mavlink_twist_setpoint_pub_;
-  rclcpp::Publisher<mavros_msgs::msg::AttitudeTarget>::SharedPtr mavlink_acro_setpoint_pub_;
+  rclcpp::Publisher<mavros_msgs::msg::AttitudeTarget>::SharedPtr mavlink_body_rates_setpoint_pub_;
 
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr mavlink_vision_pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr mavlink_vision_speed_pub_;
